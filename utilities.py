@@ -14,9 +14,9 @@ class utilities:
         self.color_mode = 'gray'
 
     def read_dicom_files(self):
-        file_name_list = os.listdir(self.image_path)
+        patient_name_list = os.listdir(self.image_path)
 
-        for file_name in file_name_list:
+        for file_name in patient_name_list:
             patient_folder = os.path.join(self.image_path, file_name)
 
             for dicom_file in os.listdir(patient_folder):
@@ -44,24 +44,26 @@ class utilities:
 
             for slice_index in range(slice_count):
                 slice = slices[:, :, slice_index]
+                # resize for different shaped images
+                if slice.shape != (512, 512):
+                    slice = np.resize(
+                        slice, (self.img_rows, self.img_columns))
 
                 yield slice
 
     def analyze_label_distribution(self):
         label_iterator = self.read_nifti_files()
+        counter = np.zeros(self.num_classes)
 
         for label in label_iterator:
-            counter = np.zeros(self.num_classes)
-
             uniqueValues, occurCount = np.unique(label, return_counts=True)
 
             for index, value in enumerate(uniqueValues):
                 counter[int(value)] += occurCount[index]
-            # print("Unique Values : " , uniqueValues)
-            # print("Occurrence Count : ", occurCount)
-        
-        print(counter)
-        # totalPixel = np.sum(counter)
 
-        
+        total_pixel = np.sum(counter)
 
+        for index, count in enumerate(counter):
+            rate = count/total_pixel
+
+            print("For label " + str(index) + " : %.5f" % rate)
