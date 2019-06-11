@@ -1,27 +1,27 @@
 from utilities import *
+from model import *
+from train import * 
+
+import numpy as np
 
 image_path = './images'
 label_path = './labels'
 
 
 def main():
-    tools = utilities(image_path, label_path)
-
-    image_iterator = tools.read_dicom_files()
-    label_iterator = tools.read_nifti_files()
-
-    dataset_iterator = zip(image_iterator, label_iterator)
-
+    train(image_path, label_path)
+        
+    """
     count = 0
-    for image in image_iterator:
-        print(image.shape)
+    for image, label in dataset_iterator:
         count += 1
 
     print(count)
-
+    """
     # tools.rename_files()
     # tools.analyze_label_distribution()
     # tools.delete_images()
+    # tools.find_dicom_range()
 
 
 main()

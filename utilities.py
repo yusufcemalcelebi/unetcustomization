@@ -15,9 +15,10 @@ class utilities:
 
     def read_dicom_files(self):
         patient_name_list = os.listdir(self.image_path)
-
+    
         for patient_name in patient_name_list:
             patient_folder = os.path.join(self.image_path, patient_name)
+            print("Reading for patient_id : " + patient_name)
 
             for dicom_file in os.listdir(patient_folder):
                 dicom_file_path = os.path.join(patient_folder, dicom_file)
@@ -30,7 +31,7 @@ class utilities:
                     pixel_array = np.resize(
                         pixel_array, (self.img_rows, self.img_columns))
 
-                yield pixel_array
+                yield self.get_normalized_image(pixel_array, patient_name)
 
     def read_nifti_files(self, label_path='./labels'):
         file_name_list = os.listdir(label_path)
@@ -49,7 +50,7 @@ class utilities:
                     slice = np.resize(
                         slice, (self.img_rows, self.img_columns))
 
-                yield slice
+                yield self.label_to_categorical(slice)
 
     def analyze_label_distribution(self):
         label_iterator = self.read_nifti_files()
@@ -117,3 +118,48 @@ class utilities:
 
             nib.save(new_nifti_file, os.path.join(
                 './generated', file_name))
+
+    def find_dicom_range(self):
+        image_iterator = self.read_dicom_files()
+
+        max_value = 0
+        min_value = 9999999
+        for image in image_iterator:
+            
+            local_min = np.amin(image)
+            
+            if(local_min < 0):
+                local_max = np.amax(image)
+                print(local_max)
+                
+                if(local_max > max_value):
+                    max_value = local_max
+
+            if(local_min < min_value):
+                min_value = local_min
+            
+        
+        print(max_value)
+        print(min_value)
+
+    def get_normalized_image(self, image, patient_id):
+        image = image.astype(float)
+        # 4a scans have different range
+        if (patient_id == '4a'):
+            min_value = -1500
+            max_value = 1350
+
+            image = (image - min_value) / (max_value - min_value)
+        else:
+            max_hounsfield_unit = 4095
+            image /= max_hounsfield_unit
+
+        return image
+
+    def label_to_categorical(self, label):
+        new_label = np.zeros(label.shape + (self.num_classes,))
+
+        for i in range(self.num_classes):
+            new_label[label == i, i] = 1
+
+        return new_label
