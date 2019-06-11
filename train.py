@@ -27,6 +27,5 @@ def train(image_path, label_path):
     # model_checkpoint = keras.callbacks.ModelCheckpoint(
     #    './model_v2.hdf5', monitor='val_loss', verbose=1, save_best_only=True)
 
-    history = model.fit_generator(dataset_iterator,
-                                  steps_per_epoch=200, epochs=30,
-                                  callbacks=[tb_cb])
+    history = model.fit(image_iterator, label_iterator,
+                        epochs=3, verbose=1, validation_split=0.1)
