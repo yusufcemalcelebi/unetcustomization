@@ -4,7 +4,7 @@ from keras.optimizers import *
 
 IMG_SIZE = 512
 
-def unet(pretrained_weights=None, input_size=(IMG_SIZE, IMG_SIZE),num_class=4):
+def unet(pretrained_weights=None, input_size=(IMG_SIZE, IMG_SIZE, 1),num_class=4):
     inputs = Input(input_size)
     conv1 = Conv2D(64, 3, activation='relu', padding='same', kernel_initializer='he_normal')(inputs)
     conv1 = Conv2D(64, 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv1)
