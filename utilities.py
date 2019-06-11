@@ -5,17 +5,18 @@ import os
 
 
 class utilities:
-    def __init__(self, image_path=None, label_path=None, img_rows=512, img_cols=512, num_classes=4):
+    def __init__(self, image_path=None, label_path=None, img_rows=512, img_cols=512, num_classes=4, batch_size=1):
         self.image_path = image_path
         self.label_path = label_path
         self.img_rows = img_rows
         self.img_columns = img_cols
         self.num_classes = num_classes
         self.color_mode = 'gray'
+        self.batch_size = batch_size
 
     def read_dicom_files(self):
         patient_name_list = os.listdir(self.image_path)
-    
+
         for patient_name in patient_name_list:
             patient_folder = os.path.join(self.image_path, patient_name)
             print("Reading for patient_id : " + patient_name)
@@ -31,7 +32,10 @@ class utilities:
                     pixel_array = np.resize(
                         pixel_array, (self.img_rows, self.img_columns))
 
-                yield self.get_normalized_image(pixel_array, patient_name)
+                normalized_image = self.get_normalized_image(
+                    pixel_array, patient_name)
+
+                yield normalized_image.reshape((self.batch_size, self.img_rows, self.img_columns, 1))
 
     def read_nifti_files(self, label_path='./labels'):
         file_name_list = os.listdir(label_path)
@@ -50,7 +54,8 @@ class utilities:
                     slice = np.resize(
                         slice, (self.img_rows, self.img_columns))
 
-                yield self.label_to_categorical(slice)
+                categorical_label = self.label_to_categorical(slice)
+                yield categorical_label.reshape((batch_size, self.img_columns, self.img_rows, self.num_classes))
 
     def analyze_label_distribution(self):
         label_iterator = self.read_nifti_files()
@@ -125,20 +130,19 @@ class utilities:
         max_value = 0
         min_value = 9999999
         for image in image_iterator:
-            
+
             local_min = np.amin(image)
-            
+
             if(local_min < 0):
                 local_max = np.amax(image)
                 print(local_max)
-                
+
                 if(local_max > max_value):
                     max_value = local_max
 
             if(local_min < min_value):
                 min_value = local_min
-            
-        
+
         print(max_value)
         print(min_value)
 
