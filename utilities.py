@@ -15,49 +15,51 @@ class utilities:
         self.batch_size = batch_size
 
     def read_dicom_files(self):
-        patient_name_list = os.listdir(self.image_path)
+        while(True):
+            patient_name_list = os.listdir(self.image_path)
 
-        for patient_name in patient_name_list:
-            patient_folder = os.path.join(self.image_path, patient_name)
-            print("\nReading Dicom for patient_id : " + patient_name)
+            for patient_name in patient_name_list:
+                patient_folder = os.path.join(self.image_path, patient_name)
+                print("\nReading Dicom for patient_id : " + patient_name)
 
-            for dicom_file in os.listdir(patient_folder):
-                dicom_file_path = os.path.join(patient_folder, dicom_file)
+                for dicom_file in os.listdir(patient_folder):
+                    dicom_file_path = os.path.join(patient_folder, dicom_file)
 
-                ds = pd.dcmread(dicom_file_path)
-                pixel_array = ds.pixel_array
+                    ds = pd.dcmread(dicom_file_path)
+                    pixel_array = ds.pixel_array
 
-                # resize for different shaped images
-                if pixel_array.shape != (512, 512):
-                    pixel_array = np.resize(
-                        pixel_array, (self.img_rows, self.img_columns))
+                    # resize for different shaped images
+                    if pixel_array.shape != (512, 512):
+                        pixel_array = np.resize(
+                            pixel_array, (self.img_rows, self.img_columns))
 
-                normalized_image = self.get_normalized_image(
-                    pixel_array, patient_name)
+                    normalized_image = self.get_normalized_image(
+                        pixel_array, patient_name)
 
                 yield normalized_image.reshape((self.batch_size, self.img_rows, self.img_columns, 1))
 
     def read_nifti_files(self):
-        file_name_list = os.listdir(self.label_path)
+        while(True):
+            file_name_list = os.listdir(self.label_path)
 
-        for file_name in file_name_list:
-            file_path = os.path.join(self.label_path, file_name)
+            for file_name in file_name_list:
+                file_path = os.path.join(self.label_path, file_name)
 
-            print("\nReading Niftii for patient_id : " + file_name)
+                print("\nReading Niftii for patient_id : " + file_name)
 
-            nifti_file = nib.load(file_path)
-            slices = nifti_file.get_fdata()
-            slice_count = slices.shape[2]
+                nifti_file = nib.load(file_path)
+                slices = nifti_file.get_fdata()
+                slice_count = slices.shape[2]
 
-            for slice_index in range(slice_count):
-                slice = slices[:, :, slice_index]
-                # resize for different shaped images
-                if slice.shape != (512, 512):
-                    slice = np.resize(
-                        slice, (self.img_rows, self.img_columns))
+                for slice_index in range(slice_count):
+                    slice = slices[:, :, slice_index]
+                    # resize for different shaped images
+                    if slice.shape != (512, 512):
+                        slice = np.resize(
+                            slice, (self.img_rows, self.img_columns))
 
-                categorical_label = self.label_to_categorical(slice)
-                yield categorical_label.reshape((self.batch_size, self.img_columns, self.img_rows, self.num_classes))
+                    categorical_label = self.label_to_categorical(slice)
+                    yield categorical_label.reshape((self.batch_size, self.img_columns, self.img_rows, self.num_classes))
 
     def analyze_label_distribution(self):
         label_iterator = self.read_nifti_files()
