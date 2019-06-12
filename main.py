@@ -1,16 +1,16 @@
 from utilities import *
 from model import *
-from train import * 
+from train import *
 
 import numpy as np
 
-image_path = './images'
-label_path = './labels'
+
+data_path = './data'
 
 
 def main():
-    train(image_path, label_path)
-        
+    train(data_path)
+
     """
     count = 0
     for image, label in dataset_iterator:

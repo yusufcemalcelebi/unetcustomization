@@ -19,7 +19,7 @@ class utilities:
 
         for patient_name in patient_name_list:
             patient_folder = os.path.join(self.image_path, patient_name)
-            print("Reading for patient_id : " + patient_name)
+            print("\nReading Dicom for patient_id : " + patient_name)
 
             for dicom_file in os.listdir(patient_folder):
                 dicom_file_path = os.path.join(patient_folder, dicom_file)
@@ -37,11 +37,13 @@ class utilities:
 
                 yield normalized_image.reshape((self.batch_size, self.img_rows, self.img_columns, 1))
 
-    def read_nifti_files(self, label_path='./labels'):
-        file_name_list = os.listdir(label_path)
+    def read_nifti_files(self):
+        file_name_list = os.listdir(self.label_path)
 
         for file_name in file_name_list:
-            file_path = os.path.join(label_path, file_name)
+            file_path = os.path.join(self.label_path, file_name)
+
+            print("\nReading Niftii for patient_id : " + file_name)
 
             nifti_file = nib.load(file_path)
             slices = nifti_file.get_fdata()

@@ -13,18 +13,33 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 log_filepath = './log'
 
 
-def train(image_path, label_path):
+def train(data_path):
+    # Check for the multiple path join
+    train_image_path = os.path.join(data_path, 'train', 'images')
+    train_label_path = os.path.join(data_path, 'train', 'labels')
+    train_set_tools = utilities(train_image_path, train_label_path)
 
-    tools = utilities(image_path, label_path)
+    train_image_iterator = train_set_tools.read_dicom_files()
+    train_label_iterator = train_set_tools.read_nifti_files()
+    train_iterator = zip(train_image_iterator, train_label_iterator)
 
-    image_iterator = tools.read_dicom_files()
-    label_iterator = tools.read_nifti_files()
+    validation_image_path = os.path.join(data_path, 'validation', 'images')
+    validation_label_path = os.path.join(data_path, 'validation', 'labels')
+    validation_set_tools = utilities(
+        validation_image_path, validation_label_path)
 
-    dataset_iterator = zip(image_iterator, label_iterator)
+    val_image_iterator = validation_set_tools.read_dicom_files()
+    val_label_iterator = validation_set_tools.read_nifti_files()
+    validation_iterator = zip(val_image_iterator, val_label_iterator)
+
     model = unet()
     tb_cb = TensorBoard(log_dir=log_filepath)
 
-    # model_checkpoint = keras.callbacks.ModelCheckpoint(
-    #    './model_v2.hdf5', monitor='val_loss', verbose=1, save_best_only=True)
-    history = model.fit_generator(dataset_iterator,
-                                  steps_per_epoch=200, epochs=30)
+    model_checkpoint = keras.callbacks.ModelCheckpoint(
+        './model_v2.hdf5', monitor='val_loss', verbose=1, save_best_only=True)
+
+    history = model.fit_generator(train_iterator,
+                                  steps_per_epoch=600, epochs=5,
+                                  validation_steps=10,
+                                  validation_data=validation_iterator,
+                                  callbacks=[model_checkpoint, tb_cb])
