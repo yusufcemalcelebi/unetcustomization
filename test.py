@@ -16,5 +16,25 @@ def test(data_path='./data', model_path='./model_v2.hdf5'):
 
     model = load_model(model_path)
 
+    count = 0
     for test_image, test_label in test_generator:
+        count += 1
         results = model.predict(test_image)
+
+        label_distribution(results)
+        if count == 7:
+            break
+
+
+def label_distribution(label_batch):
+    counter = np.zeros((4))
+    for label in label_batch:
+        for i in range(512):
+            for j in range(512):
+                label_index = np.argmax(label[i, j])
+
+                counter[label_index] += 1
+    print(counter)
+
+
+test()
