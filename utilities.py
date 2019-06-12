@@ -5,72 +5,105 @@ import os
 
 
 class utilities:
-    def __init__(self, image_path=None, label_path=None, img_rows=512, img_cols=512, num_classes=4, batch_size=1):
+    def __init__(self, image_path=None, label_path=None, img_rows=512, img_cols=512, num_classes=4, batch_size=4):
         self.image_path = image_path
         self.label_path = label_path
         self.img_rows = img_rows
         self.img_columns = img_cols
         self.num_classes = num_classes
-        self.color_mode = 'gray'
+        self.color_mode = 'grayscale'
         self.batch_size = batch_size
 
+    def get_data_set_generator(self):
+        train_image_generator = self.read_dicom_files()
+        train_label_generator = self.read_nifti_files()
+
+        train_generator = zip(train_image_generator, train_label_generator)
+
+        return train_generator
+
     def read_dicom_files(self):
-        while(True):
-            patient_name_list = os.listdir(self.image_path)
+        patient_name_list = os.listdir(self.image_path)
 
-            for patient_name in patient_name_list:
-                patient_folder = os.path.join(self.image_path, patient_name)
-                # print("\nReading Dicom for patient_id : " + patient_name)
+        for patient_name in patient_name_list:
+            patient_folder = os.path.join(self.image_path, patient_name)
+            # print("\nReading Dicom for patient_id : " + patient_name)
 
-                for dicom_file in os.listdir(patient_folder):
-                    dicom_file_path = os.path.join(patient_folder, dicom_file)
+            batch_index = 0
+            for dicom_file in os.listdir(patient_folder):
+                batch_index += 1
+                dicom_file_path = os.path.join(patient_folder, dicom_file)
 
-                    ds = pd.dcmread(dicom_file_path)
-                    pixel_array = ds.pixel_array
+                ds = pd.dcmread(dicom_file_path)
+                pixel_array = ds.pixel_array
 
-                    # resize for different shaped images
-                    if pixel_array.shape != (512, 512):
-                        pixel_array = np.resize(
-                            pixel_array, (self.img_rows, self.img_columns))
+                # resize for different shaped images
+                if pixel_array.shape != (512, 512):
+                    pixel_array = np.resize(
+                        pixel_array, (self.img_rows, self.img_columns))
 
-                    normalized_image = self.get_normalized_image(
-                        pixel_array, patient_name)
+                normalized_image = self.get_normalized_image(
+                    pixel_array, patient_name)
 
-                yield normalized_image.reshape((self.batch_size, self.img_rows, self.img_columns, 1))
+                if (batch_index == 1):
+                    image_batch = np.zeros(
+                        (0, self.img_rows, self.img_columns, 1))
+
+                image_batch = np.append(image_batch, normalized_image)
+
+                if (batch_index == self.batch_size):
+                    yield image_batch.reshape(self.batch_size, self.img_rows, self.img_columns, 1)
+
+                batch_index %= self.batch_size
 
     def read_nifti_files(self):
-        while(True):
-            file_name_list = os.listdir(self.label_path)
+        file_name_list = os.listdir(self.label_path)
 
-            for file_name in file_name_list:
-                file_path = os.path.join(self.label_path, file_name)
+        for file_name in file_name_list:
+            file_path = os.path.join(self.label_path, file_name)
 
-                # print("\nReading Niftii for patient_id : " + file_name)
+            # print("\nReading Niftii for patient_id : " + file_name)
 
-                nifti_file = nib.load(file_path)
-                slices = nifti_file.get_fdata()
-                slice_count = slices.shape[2]
+            nifti_file = nib.load(file_path)
+            slices = nifti_file.get_fdata()
 
-                for slice_index in range(slice_count):
-                    slice = slices[:, :, slice_index]
-                    # resize for different shaped images
-                    if slice.shape != (512, 512):
-                        slice = np.resize(
-                            slice, (self.img_rows, self.img_columns))
+            slice_count = slices.shape[2]
 
-                    categorical_label = self.label_to_categorical(slice)
-                    yield categorical_label.reshape((self.batch_size, self.img_columns, self.img_rows, self.num_classes))
+            slices = slices.reshape(
+                (slice_count, self.img_rows, self.img_columns))
 
-    # Before using this function re-implement iterator function
+            batch_index = 0
+            for slice_index in range(slice_count):
+                batch_index += 1
+                slice = slices[slice_index, :, :]
+                # resize for different shaped images
+                if slice.shape != (512, 512):
+                    slice = np.resize(
+                        slice, (self.img_rows, self.img_columns))
+
+                categorical_label = self.label_to_categorical(slice)
+
+                if (batch_index == 1):
+                    label_batch = np.zeros(
+                        (0, self.img_rows, self.img_columns, self.num_classes))
+
+                label_batch = np.append(label_batch, categorical_label)
+
+                if (batch_index == self.batch_size):
+                    yield label_batch.reshape(self.batch_size, self.img_rows, self.img_columns, self.num_classes)
+
+                batch_index %= self.batch_size
+
     def analyze_label_distribution(self):
         label_iterator = self.read_nifti_files()
         counter = np.zeros(self.num_classes)
 
-        for label in label_iterator:
-            uniqueValues, occurCount = np.unique(label, return_counts=True)
-
-            for index, value in enumerate(uniqueValues):
-                counter[int(value)] += occurCount[index]
+        for label_batch in label_iterator:
+            for batch_index in range(self.batch_size):
+                for i in range(self.img_rows):
+                    for j in range(self.img_columns):
+                        label_index = np.argmax(label_batch[batch_index, i, j])
+                        counter[label_index] += 1
 
         total_pixel = np.sum(counter)
 
