@@ -61,6 +61,7 @@ class utilities:
                     categorical_label = self.label_to_categorical(slice)
                     yield categorical_label.reshape((self.batch_size, self.img_columns, self.img_rows, self.num_classes))
 
+    # Before using this function re-implement iterator function
     def analyze_label_distribution(self):
         label_iterator = self.read_nifti_files()
         counter = np.zeros(self.num_classes)
