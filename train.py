@@ -38,14 +38,8 @@ def train(data_path):
     model_checkpoint = keras.callbacks.ModelCheckpoint(
         './model_v2.hdf5', monitor='val_loss', verbose=1, save_best_only=True)
 
-    class_weight = {0: 1.,
-                    1: 20.,
-                    2: 20.,
-                    3: 20.}
-
     history = model.fit_generator(train_iterator,
                                   steps_per_epoch=500, epochs=10,
                                   validation_steps=40,
                                   validation_data=validation_iterator,
-                                  callbacks=[model_checkpoint, tb_cb],
-                                  class_weight=class_weight)
+                                  callbacks=[model_checkpoint, tb_cb])
