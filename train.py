@@ -39,7 +39,7 @@ def train(data_path):
         './model_v2.hdf5', monitor='val_loss', verbose=1, save_best_only=True)
 
     history = model.fit_generator(train_iterator,
-                                  steps_per_epoch=100, epochs=10,
-                                  validation_steps=40,
+                                  steps_per_epoch=30, epochs=100,
+                                  validation_steps=30,
                                   validation_data=validation_iterator,
                                   callbacks=[model_checkpoint, tb_cb])
